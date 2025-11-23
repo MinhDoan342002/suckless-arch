@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+# update - Update system, AUR, Flatpak, Snap, and Python packages
+
+set -e
+
+echo "===== Updating system packages (Pacman) ====="
+sudo pacman -Syu --noconfirm
+
+# Update AUR packages if yay is installed
+if command -v yay >/dev/null 2>&1; then
+    echo "===== Updating AUR packages (yay) ====="
+    yay -Syu --devel --removemake --noconfirm
+fi
+
+# Update Flatpak apps if flatpak is installed
+if command -v flatpak >/dev/null 2>&1; then
+    echo "===== Updating Flatpak apps ====="
+    flatpak update -y
+fi
+
+# Update Snap apps if snap is installed
+if command -v snap >/dev/null 2>&1; then
+    echo "===== Updating Snap apps ====="
+    sudo snap refresh
+fi
+
+# Update user-installed Python pip packages
+if command -v pip >/dev/null 2>&1; then
+    echo "===== Updating Python pip packages ====="
+    outdated=$(pip list --user --outdated --format=freeze | cut -d = -f 1)
+    if [ -n "$outdated" ]; then
+        pip install --upgrade --user $outdated
+    else
+        echo "No outdated pip packages found."
+    fi
+fi
+
+echo "===== All updates complete! ====="
+

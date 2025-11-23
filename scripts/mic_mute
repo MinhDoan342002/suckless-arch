@@ -1,0 +1,14 @@
+#!/bin/bash
+
+# Get current mute status of the capture device (mic)
+MUTE_STATUS=$(amixer get Capture | grep '\[on\]\|\[off\]' | head -n1)
+
+if echo "$MUTE_STATUS" | grep -q '\[on\]'; then
+    # Mic is currently unmuted, so mute it
+    amixer set Capture nocap
+    notify-send "Microphone muted"
+else
+    # Mic is currently muted, so unmute it
+    amixer set Capture cap
+    notify-send "Microphone unmuted"
+fi

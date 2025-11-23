@@ -1,0 +1,66 @@
+#!/bin/bash
+# ~/scripts/brightness
+
+action=$1
+amount=$2
+
+add_percent_if_missing() {
+  # Add % if $1 does not contain %
+  if [[ "$1" =~ %$ ]]; then
+    echo "$1"
+  else
+    echo "${1}%"
+  fi
+}
+
+if [[ -z "$action" ]]; then
+  amount=$(echo "" | dmenu -p "Set brightness (0-100%)")
+  # Add % if missing
+  amount=$(add_percent_if_missing "$amount")
+  if [[ "$amount" =~ ^[0-9]+%$ ]]; then
+    brightnessctl set "$amount"
+  else
+    notify-send "Brightness script" "Invalid input: enter number 0-100"
+    exit 1
+  fi
+  exit 0
+fi
+
+case "$action" in
+up)
+  amt="${amount:-10}"
+  amt=$(add_percent_if_missing "$amt")
+  # remove trailing % to insert sign properly
+  num="${amt%\%}"
+  brightnessctl set "${num}%+"
+  ;;
+down)
+  amt="${amount:-10}"
+  amt=$(add_percent_if_missing "$amt")
+  num="${amt%\%}"
+  brightnessctl set "${num}%-"
+  ;;
+
+
+  set)
+    if [[ -z "$amount" ]]; then
+      amount=$(echo "" | dmenu -p "Set brightness (0-100%)")
+    fi
+    amount=$(add_percent_if_missing "$amount")
+    if [[ "$amount" =~ ^[0-9]+%$ ]]; then
+      brightnessctl set "$amount"
+    else
+      notify-send "Brightness script" "Invalid input: enter number 0-100"
+      exit 1
+    fi
+    ;;
+  *)
+    echo "Usage: $0 {up|down|set} [amount]"
+    echo "Examples:"
+    echo "  $0 up 15      # Increase brightness by 15%"
+    echo "  $0 down 5     # Decrease brightness by 5%"
+    echo "  $0 set 75     # Set brightness to exactly 75%"
+    echo "  $0 set        # Prompt with dmenu for brightness"
+    echo "  $0            # Prompt with dmenu for brightness"
+    ;;
+esac

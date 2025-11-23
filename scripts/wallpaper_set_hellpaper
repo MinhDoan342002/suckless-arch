@@ -1,0 +1,19 @@
+#!/bin/bash
+
+# Check if hellpaper is already running
+if pgrep -x "hellpaper" > /dev/null; then
+    pkill -x "hellpaper"
+    exit 0
+fi
+
+# Run hellpaper and capture selected wallpaper path
+wall=$(hellpaper ~/Pictures)
+
+# Exit if no wallpaper selected
+[ -z "$wall" ] && exit 0
+
+# Set wallpaper
+feh --bg-fill "$wall"
+
+# Store wallpaper path for reuse in .xinitrc
+echo "$wall" > ~/.cache/current_wallpaper

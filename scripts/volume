@@ -1,0 +1,77 @@
+#!/bin/bash
+# ~/scripts/volume
+
+action=$1
+amount=$2
+MAX_VOL=150  # maximum allowed volume percentage
+
+add_percent_if_missing() {
+  # Add % if $1 does not contain %
+  if [[ "$1" =~ %$ ]]; then
+    echo "$1"
+  else
+    echo "${1}%"
+  fi
+}
+
+validate_volume() {
+  local val=$1
+  # Strip % if any
+  val="${val%\%}"
+  if [[ "$val" =~ ^[0-9]+$ ]] && [ "$val" -ge 0 ] && [ "$val" -le $MAX_VOL ]; then
+    return 0
+  else
+    return 1
+  fi
+}
+
+if [[ -z "$action" ]]; then
+  # No arguments: prompt with dmenu to set volume
+  amount=$(echo "" | dmenu -p "Set volume (0-$MAX_VOL%)")
+  amount=$(add_percent_if_missing "$amount")
+  if validate_volume "$amount"; then
+    pactl set-sink-volume @DEFAULT_SINK@ "$amount"
+  else
+    notify-send "Volume script" "Invalid input: please enter a number between 0 and $MAX_VOL."
+    exit 1
+  fi
+  exit 0
+fi
+
+case "$action" in
+  up)
+    amt="${amount:-5}"
+    amt=$(add_percent_if_missing "$amt")
+    pactl set-sink-volume @DEFAULT_SINK@ +"$amt"
+    ;;
+  down)
+    amt="${amount:-5}"
+    amt=$(add_percent_if_missing "$amt")
+    pactl set-sink-volume @DEFAULT_SINK@ -"$amt"
+    ;;
+  set)
+    if [[ -z "$amount" ]]; then
+      amount=$(echo "" | dmenu -p "Set volume (0-$MAX_VOL%)")
+    fi
+    amount=$(add_percent_if_missing "$amount")
+    if validate_volume "$amount"; then
+      pactl set-sink-volume @DEFAULT_SINK@ "$amount"
+    else
+      notify-send "Volume script" "Invalid input: please enter a number between 0 and $MAX_VOL."
+      exit 1
+    fi
+    ;;
+  mute)
+    pactl set-sink-mute @DEFAULT_SINK@ toggle
+    ;;
+  *)
+    echo "Usage: $0 {up|down|set|mute} [amount]"
+    echo "Examples:"
+    echo "  $0 up 10      # Increase volume by 10%"
+    echo "  $0 down 5     # Decrease volume by 5%"
+    echo "  $0 set 79     # Set volume to exactly 79%"
+    echo "  $0 set        # Prompt with dmenu for volume"
+    echo "  $0 mute       # Toggle mute"
+    echo "  $0           # Prompt with dmenu to set volume"
+    ;;
+esac

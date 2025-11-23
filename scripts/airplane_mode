@@ -1,0 +1,13 @@
+#!/bin/bash
+
+wifi_status=$(nmcli radio wifi)
+wwan_status=$(nmcli radio wwan)
+
+if [ "$wifi_status" = "enabled" ] || [ "$wwan_status" = "enabled" ]; then
+    nmcli radio all off
+    dunstify "Airplane Mode" "Enabled"
+else
+    nmcli radio all on
+    dunstify "Airplane Mode" "Disabled"
+fi
+

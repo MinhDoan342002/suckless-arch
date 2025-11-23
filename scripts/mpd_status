@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+
+while true; do
+    status="$(mpc status 2>/dev/null)"
+
+    artist="$(mpc --format '%artist%' current 2>/dev/null)"
+    title="$(mpc --format '%title%' current 2>/dev/null)"
+    album="$(mpc --format '%album%' current 2>/dev/null)"
+
+    elapsed="$(echo "$status" | grep -oE '[0-9]+:[0-9]+' | head -1)"
+    total="$(echo "$status" | grep -oE '/[0-9]+:[0-9]+' | sed 's|/||')"
+
+    raw_percent="$(echo "$status" | grep -oP '\(\K[0-9]+(\.[0-9]+)?(?=%)')"
+
+    if [[ "$raw_percent" == *.* ]]; then
+        percent="$(printf "%.0f" "$raw_percent")"
+    else
+        percent="${raw_percent:-0}"
+    fi
+
+    if echo "$status" | grep -q "playing"; then
+        mpd_status="playing"
+    elif echo "$status" | grep -q "paused"; then
+        mpd_status="paused"
+    else
+        mpd_status="stopped"
+    fi
+
+    cover="/tmp/current_cover.png"
+
+    printf '{'
+    printf '"artist":"%s",'  "$artist"
+    printf '"title":"%s",'   "$title"
+    printf '"album":"%s",'   "$album"
+    printf '"elapsed":"%s",' "$elapsed"
+    printf '"total":"%s",'   "$total"
+    printf '"status":"%s",'  "$mpd_status"
+    printf '"percent":%s,'   "$percent"
+    printf '"cover":"%s"'    "$cover"
+    printf '}\n'
+
+    sleep 0.5
+done

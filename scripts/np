@@ -1,0 +1,68 @@
+#!/usr/bin/env bash
+set -u pipefail
+
+# ========== KILL EXISTING ============================================
+
+# Scratchpad window title/class
+scratchpad_name="spncmpcpp"
+
+# Check if the scratchpad window already exists
+if xdotool search --name "$scratchpad_name" > /dev/null 2>&1; then
+    # If it exists, close it (kill the window)
+    xdotool search --name "$scratchpad_name" windowkill
+    exit 0
+fi
+# =====================================================================
+
+
+# ========== CONFIGURATION ============================================
+# This NEEDS to match the music_directory in your mpd.conf
+music_dir="$HOME/Musics"
+
+# Resize cover art to this width in pixels (height is auto-scaled)
+cover_resize="200"
+
+# Regex for matching cover file names (e.g. cover.jpg, folder.png, etc.)
+img_reg=".*/(cover|front|folder|art).(jpg|jpeg|png|gif)$"
+
+# Optional: notification formatting colors
+artist_color="#c6c6c6"
+song_color="#a4a4a4"
+
+# Optional: dunstify markup format for notification
+form="<span color='$artist_color'>%artist%</span> - <span color='$song_color'>%title%</span>"
+# =====================================================================
+
+# Get the current song's file path
+song="$(mpc --format %file% current)"
+songdir="$music_dir/$(dirname "${song}")/"
+raw_cover="/tmp/current_cover.png"
+
+# Prepare notification content
+heading="$(mpc current -f "%album%" | sed 's:&:&amp;:g')"
+message="$(mpc current -f "$form" | sed 's:&:&amp;:g')"
+
+# Exit if nothing is playing
+[[ -z $song ]] && exit 1
+
+# Exit if song directory not found
+[[ -z "$songdir" ]] && exit 1
+
+# Find album cover in the song's directory
+cover="$(find "$songdir" -maxdepth 1 -type f -regextype egrep -regex "$img_reg" 2>/dev/null)"
+
+# Resize cover if found
+if [[ -n $cover ]]; then
+	ffmpeg -hide_banner -loglevel panic -nostats -y -i "$cover" -vf scale="$cover_resize":-2 "$raw_cover"
+    cover="$raw_cover"
+fi
+
+# Send desktop notification with dunstify
+dunstify -u low -t 8000 -i "$cover" "$heading" "$message"
+
+# ---------------------------------------------------------------------
+# Optional: Show temporary floating cover art with sxiv (disabled by default)
+# Uncomment below to enable
+# sxiv "$cover" -N albumcover -g 250x250-10-10 -bpq > /dev/null 2>&1 & pid=$!
+#     { sleep 4; kill "$pid"; } &
+# ---------------------------------------------------------------------

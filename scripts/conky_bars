@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Kill any existing conky instances
+pkill -x conky
+
+# Wait briefly to ensure processes are killed
+sleep 0.5
+
+# Launch top bar
+conky -c ~/.config/conky/topbar.conf &
+
+# Launch music widget only if music is playing
+conky -c ~/.config/conky/music.conf &

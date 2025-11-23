@@ -1,0 +1,43 @@
+#!/bin/bash
+# monitor-layout.sh — Dynamic monitor layout chooser
+
+# Get connected monitors
+monitors=$(xrandr --query | grep " connected" | awk '{print $1}')
+count=$(echo "$monitors" | wc -l)
+
+# If only one monitor
+if [ "$count" -le 1 ]; then
+    dunstify "Only one monitor detected" "$monitors"
+    exit 0
+fi
+
+# Layout options
+options="mirror\nextend_right\nextend_left\nsingle_laptop\nsingle_external"
+
+choice=$(echo -e "$options" | dmenu -p "Monitor Layout:" -fn "Monospace-13" -l 5)
+[ -z "$choice" ] && exit 0
+
+# Assign names
+internal=$(echo "$monitors" | head -n1)
+external=$(echo "$monitors" | tail -n1)
+
+case "$choice" in
+    mirror)
+        xrandr --output "$external" --same-as "$internal"
+        ;;
+    extend_right)
+        xrandr --output "$external" --right-of "$internal" --auto
+        ;;
+    extend_left)
+        xrandr --output "$external" --left-of "$internal" --auto
+        ;;
+    single_laptop)
+        xrandr --output "$external" --off --output "$internal" --auto
+        ;;
+    single_external)
+        xrandr --output "$internal" --off --output "$external" --auto
+        ;;
+esac
+
+dunstify "Monitor Layout Changed" "$choice"
+

@@ -1,0 +1,41 @@
+#!/bin/bash
+
+# Usage: ./check-pacman-deps.sh <package_name>
+pkg="$1"
+
+if [ -z "$pkg" ]; then
+    echo "Usage: $0 <package_name>"
+    exit 1
+fi
+
+# Get dependencies from pacman info
+info=$(pacman -Si "$pkg" 2>/dev/null)
+
+if [ -z "$info" ]; then
+    echo "❌ Package '$pkg' not found"
+    exit 1
+fi
+
+echo "🔍 Checking dependencies for: $pkg"
+
+# Extract Depends On
+echo -e "\nRequired dependencies:"
+echo "$info" | grep "Depends On" | sed 's/Depends On[ \t]*: //' | tr -s ' ' '\n' | while read -r dep; do
+    dep=${dep%%=*}  # Remove version constraints
+    if pacman -Q "$dep" &>/dev/null; then
+        echo "✅ $dep"
+    else
+        echo "❌ $dep"
+    fi
+done
+
+# Extract Optional Deps
+echo -e "\nOptional dependencies:"
+echo "$info" | grep "Optional Deps" -A 50 | grep -v "^$" | sed 's/Optional Deps[ \t]*: //' | cut -d':' -f1 | while read -r optdep; do
+    if pacman -Q "$optdep" &>/dev/null; then
+        echo "✅ $optdep"
+    else
+        echo "⚠️  $optdep"
+    fi
+done
+
